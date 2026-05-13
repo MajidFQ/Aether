@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 /// Outlined social login tile: white background, black border, offset shadow.
-///
-/// Matches the "Google" / "Apple" buttons in the login mockup.
 class SocialButton extends StatelessWidget {
   const SocialButton({
     super.key,
@@ -12,7 +10,7 @@ class SocialButton extends StatelessWidget {
     this.isEnabled = true,
   });
 
-  /// Text next to the icon ("Google", "Apple").
+  /// Text next to the icon (e.g. "Google").
   final String label;
 
   /// Called when the user taps the button (only if [isEnabled] is true).

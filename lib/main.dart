@@ -14,11 +14,6 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Do not call GoogleSignIn.instance.initialize() here: on web it requires an
-  // OAuth Web client ID (meta tag or dart-define) and will assert before runApp,
-  // which shows a blank page. Initialization runs lazily in AuthService when
-  // the user taps "Google".
-
   runApp(
     Provider<AuthService>(
       create: (_) => AuthService(),

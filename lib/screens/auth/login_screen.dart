@@ -7,32 +7,17 @@ import '../../services/auth_service.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/social_button.dart';
 
-// =============================================================================
-// Design tokens — match the Figma / spec (colors, radii, shadow).
-// =============================================================================
+// --- Design tokens (neo-brutalist) ---
 
-/// Primary brand purple used for headlines, links, and the main call-to-action.
 const Color _kPrimary = Color(0xFF5B4FFF);
-
-/// Page background behind the floating card.
 const Color _kPageBackground = Color(0xFFF5F5F7);
-
-/// Neo-brutalist outline and hard shadow color.
 const Color _kBorderBlack = Color(0xFF000000);
-
-/// Secondary copy (taglines, hints, divider label).
 const Color _kMutedGray = Color(0xFF6B6B70);
 
-/// Card corner rounding.
 const double _kCardRadius = 16;
-
-/// Inputs, buttons, and social tiles share this corner radius.
 const double _kControlRadius = 12;
-
-/// Inner padding for the white login card.
 const double _kCardPadding = 24;
 
-/// Solid “lifted card” shadow used across the screen.
 const List<BoxShadow> _kNeoShadow = [
   BoxShadow(
     color: Colors.black,
@@ -42,13 +27,11 @@ const List<BoxShadow> _kNeoShadow = [
   ),
 ];
 
-/// Named routes used from this screen (also registered in [MaterialApp.routes]).
 abstract class LoginScreenRoutes {
   static const String home = '/home';
   static const String register = '/register';
 }
 
-/// High-energy neo-brutalist login experience wired to Firebase via [AuthService].
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -57,24 +40,14 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // ---------------------------------------------------------------------------
-  // Controllers — keep text separate from the widget tree so values survive
-  // rebuilds and can be disposed cleanly in [dispose].
-  // ---------------------------------------------------------------------------
+  // --- State & controllers ---
+
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  /// When true, email/password and social actions are disabled and the primary
-  /// button shows a spinner instead of the label.
   bool isLoading = false;
-
-  /// Client-side validation for the email field (format).
   String? emailError;
-
-  /// Client-side validation for the password field (length).
   String? passwordError;
-
-  /// Firebase or network error that is not tied to a single field.
   String? firebaseError;
 
   @override
@@ -84,31 +57,23 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // ---------------------------------------------------------------------------
-  // Validation helpers — small pure functions keep the UI code readable.
-  // ---------------------------------------------------------------------------
+  // --- Auth & validation ---
 
-  /// Returns `null` when the string looks like a normal email address.
-  String? validateEmailFormat(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return 'Please enter your email.';
-    final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-    if (!emailPattern.hasMatch(trimmed)) {
+  String? _validateEmail(String value) {
+    final t = value.trim();
+    if (t.isEmpty) return 'Please enter your email.';
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(t)) {
       return 'Enter a valid email address.';
     }
     return null;
   }
 
-  /// Firebase password rules are stricter; we enforce at least six characters.
-  String? validatePasswordLength(String value) {
+  String? _validatePassword(String value) {
     if (value.isEmpty) return 'Please enter your password.';
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters.';
-    }
+    if (value.length < 6) return 'Password must be at least 6 characters.';
     return null;
   }
 
-  /// Clears server-side errors whenever the user edits a field.
   void _onEmailChanged(String _) {
     if (firebaseError != null || emailError != null) {
       setState(() {
@@ -127,49 +92,36 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// Maps [FirebaseAuthException.code] to short, human-readable copy.
-  void _applyFirebaseAuthError(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'invalid-email':
-        emailError = 'That email address is not valid.';
-        break;
-      case 'user-disabled':
-        firebaseError = 'This account has been disabled.';
-        break;
-      case 'user-not-found':
-        emailError = 'No account found for that email.';
-        break;
-      case 'wrong-password':
-        passwordError = 'Incorrect password. Try again.';
-        break;
-      case 'invalid-credential':
-      case 'invalid-login-credentials':
-        firebaseError = 'Those credentials did not work. Check email/password.';
-        break;
-      default:
-        firebaseError = e.message ?? 'Something went wrong. Please try again.';
+  void _mapFirebaseAuthError(FirebaseAuthException e) {
+    final code = e.code;
+    if (code == 'invalid-email') {
+      emailError = 'That email address is not valid.';
+    } else if (code == 'user-disabled') {
+      firebaseError = 'This account has been disabled.';
+    } else if (code == 'user-not-found') {
+      emailError = 'No account found for that email.';
+    } else if (code == 'wrong-password') {
+      passwordError = 'Incorrect password. Try again.';
+    } else if (code == 'invalid-credential' ||
+        code == 'invalid-login-credentials') {
+      firebaseError =
+          'Those credentials did not work. Check email/password.';
+    } else {
+      firebaseError = e.message ?? 'Something went wrong. Please try again.';
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Auth actions — delegate all Firebase work to [AuthService].
-  // ---------------------------------------------------------------------------
-
-  Future<void> _handleEmailLogin(AuthService auth) async {
+  Future<void> _loginWithEmail(AuthService auth) async {
     FocusScope.of(context).unfocus();
 
     setState(() {
-      emailError = validateEmailFormat(emailController.text);
-      passwordError = validatePasswordLength(passwordController.text);
+      emailError = _validateEmail(emailController.text);
+      passwordError = _validatePassword(passwordController.text);
       firebaseError = null;
     });
-
-    if (emailError != null || passwordError != null) {
-      return;
-    }
+    if (emailError != null || passwordError != null) return;
 
     setState(() => isLoading = true);
-
     try {
       await auth.signInWithEmailAndPassword(
         email: emailController.text.trim(),
@@ -178,17 +130,15 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed(LoginScreenRoutes.home);
     } on FirebaseAuthException catch (e) {
-      setState(() => _applyFirebaseAuthError(e));
+      setState(() => _mapFirebaseAuthError(e));
     } catch (e) {
-      setState(() {
-        firebaseError = 'Unexpected error: $e';
-      });
+      setState(() => firebaseError = 'Unexpected error: $e');
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
   }
 
-  Future<void> _handleGoogleLogin(AuthService auth) async {
+  Future<void> _loginWithGoogle(AuthService auth) async {
     FocusScope.of(context).unfocus();
     setState(() {
       firebaseError = null;
@@ -199,32 +149,23 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed(LoginScreenRoutes.home);
     } on FirebaseAuthException catch (e) {
-      setState(() => _applyFirebaseAuthError(e));
+      setState(() => _mapFirebaseAuthError(e));
     } on StateError catch (e) {
-      // User cancelled, or we couldn't initialize Google Sign-In on web.
       if (e.message == 'Google sign-in was cancelled.') return;
-      if (mounted) {
-        final msg = e.message;
-        setState(() => firebaseError =
-            msg.isNotEmpty ? msg : 'Google sign-in failed.');
-      }
+      final m = e.message;
+      setState(
+        () => firebaseError =
+            m.isNotEmpty ? m : 'Google sign-in failed.',
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Google sign-in failed: $e')),
-        );
-      }
+      setState(() => firebaseError = 'Google sign-in failed: $e');
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
   }
 
-
-
-  /// Opens a lightweight dialog so the user can request a reset link.
-  Future<void> _showForgotPasswordDialog(AuthService auth) async {
-    final resetEmailController =
-        TextEditingController(text: emailController.text.trim());
+  Future<void> _forgotPassword(AuthService auth) async {
+    final resetCtrl = TextEditingController(text: emailController.text.trim());
 
     await showDialog<void>(
       context: context,
@@ -232,7 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return AlertDialog(
           title: const Text('Reset password'),
           content: TextField(
-            controller: resetEmailController,
+            controller: resetCtrl,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(
               labelText: 'Email',
@@ -246,17 +187,17 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             TextButton(
               onPressed: () async {
-                final email = resetEmailController.text.trim();
-                final formatError = validateEmailFormat(email);
-                if (formatError != null) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(formatError)),
-                  );
+                final err = _validateEmail(resetCtrl.text);
+                if (err != null) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(err)),
+                    );
+                  }
                   return;
                 }
                 try {
-                  await auth.sendPasswordResetEmail(email);
+                  await auth.sendPasswordResetEmail(resetCtrl.text.trim());
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
@@ -269,7 +210,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 } on FirebaseAuthException catch (e) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(e.message ?? 'Could not send email.')),
+                    SnackBar(
+                      content: Text(e.message ?? 'Could not send email.'),
+                    ),
                   );
                 }
               },
@@ -280,96 +223,12 @@ class _LoginScreenState extends State<LoginScreen> {
       },
     );
 
-    resetEmailController.dispose();
+    resetCtrl.dispose();
   }
 
-  // ---------------------------------------------------------------------------
-  // UI building blocks — each helper returns one focused chunk of the layout.
-  // ---------------------------------------------------------------------------
+  // --- UI sections (same look as before) ---
 
-  /// Top branding outside the card (name + tagline).
-  Widget _buildHeader() {
-    return Column(
-      children: [
-        Text(
-          'Aether',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 40,
-            fontWeight: FontWeight.w800,
-            color: _kPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Your high-energy creative study hub.',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: _kMutedGray,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// White elevated panel that wraps the entire form.
-  Widget _buildLoginCard(AuthService auth) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_kCardRadius),
-        border: Border.all(color: _kBorderBlack, width: 2),
-        boxShadow: _kNeoShadow,
-      ),
-      padding: const EdgeInsets.all(_kCardPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Welcome Back',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              color: _kBorderBlack,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Enter your details to dive back in.',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: _kMutedGray,
-            ),
-          ),
-          const SizedBox(height: 24),
-          buildEmailField(),
-          const SizedBox(height: 20),
-          buildPasswordField(auth),
-          if (firebaseError != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              firebaseError!,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 13,
-                color: Colors.red,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-          const SizedBox(height: 24),
-          buildContinueButton(auth),
-          const SizedBox(height: 24),
-          _buildDivider(),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  /// Email text field with validation messaging.
-  Widget buildEmailField() {
+  Widget _emailField() {
     return CustomTextField(
       label: 'Email Address',
       controller: emailController,
@@ -381,12 +240,11 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  /// Password field with inline “Forgot?” action on the label row.
-  Widget buildPasswordField(AuthService auth) {
+  Widget _passwordField(AuthService auth) {
     return CustomTextField(
       label: 'Password',
       labelTrailing: GestureDetector(
-        onTap: isLoading ? null : () => _showForgotPasswordDialog(auth),
+        onTap: isLoading ? null : () => _forgotPassword(auth),
         child: Text(
           'Forgot?',
           style: GoogleFonts.plusJakartaSans(
@@ -407,8 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  /// Primary filled button with gradient fill, border, and neo shadow.
-  Widget buildContinueButton(AuthService auth) {
+  Widget _continueButton(AuthService auth) {
     return Container(
       decoration: const BoxDecoration(
         borderRadius: BorderRadius.all(Radius.circular(_kControlRadius)),
@@ -418,16 +275,13 @@ class _LoginScreenState extends State<LoginScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(_kControlRadius),
-          onTap: isLoading ? null : () => _handleEmailLogin(auth),
+          onTap: isLoading ? null : () => _loginWithEmail(auth),
           child: Ink(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(_kControlRadius),
               border: Border.all(color: _kBorderBlack, width: 2),
               gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF5B4FFF),
-                  Color(0xFF4A3FD9),
-                ],
+                colors: [Color(0xFF5B4FFF), Color(0xFF4A3FD9)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -460,75 +314,34 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  /// “Or join with” label framed by thin horizontal rules.
-  Widget _buildDivider() {
-    final lineStyle = GoogleFonts.plusJakartaSans(
-      fontSize: 14,
-      fontWeight: FontWeight.w600,
-      color: _kMutedGray,
-    );
-
+  /// Web uses Firebase popup inside [AuthService]; Android uses `google_sign_in` — same UI entry point.
+  Widget _googleButton(AuthService auth) {
     return Row(
       children: [
-        const Expanded(child: Divider(color: _kBorderBlack, thickness: 1)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text('or join with', style: lineStyle),
-        ),
-        const Expanded(child: Divider(color: _kBorderBlack, thickness: 1)),
-      ],
-    );
-  }
-
-  /// Loads the colorful Google mark when network is available; falls back locally.
-  Widget _buildGoogleIcon() {
-    return SizedBox(
-      width: 22,
-      height: 22,
-      child: Image.network(
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/64px-Google_%22G%22_logo.svg.png',
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          return FittedBox(
-            child: Text(
-              'G',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF4285F4),
+        Expanded(
+          child: SocialButton(
+            label: 'Google',
+            icon: SizedBox(
+              width: 22,
+              height: 22,
+              child: Image.network(
+                'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/64px-Google_%22G%22_logo.svg.png',
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return FittedBox(
+                    child: Text(
+                      'G',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF4285F4),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-
-  /// Footer copy with tappable “Register now”.
-  Widget _buildFooter() {
-    final baseStyle = GoogleFonts.plusJakartaSans(
-      fontSize: 15,
-      fontWeight: FontWeight.w500,
-      color: _kMutedGray,
-    );
-
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text("Don't have an account? ", style: baseStyle),
-        GestureDetector(
-          onTap: isLoading
-              ? null
-              : () {
-                  Navigator.of(context).pushNamed(LoginScreenRoutes.register);
-                },
-          child: Text(
-            'Register now',
-            style: baseStyle.copyWith(
-              color: _kPrimary,
-              fontWeight: FontWeight.w700,
-            ),
+            isEnabled: !isLoading,
+            onPressed: () => _loginWithGoogle(auth),
           ),
         ),
       ],
@@ -538,9 +351,18 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.read<AuthService>();
-
     final textTheme = GoogleFonts.plusJakartaSansTextTheme(
       Theme.of(context).textTheme,
+    );
+    final dividerLabelStyle = GoogleFonts.plusJakartaSans(
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      color: _kMutedGray,
+    );
+    final footerStyle = GoogleFonts.plusJakartaSans(
+      fontSize: 15,
+      fontWeight: FontWeight.w500,
+      color: _kMutedGray,
     );
 
     return Theme(
@@ -551,26 +373,133 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Scaffold(
         backgroundColor: _kPageBackground,
         body: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                    child: Column(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: Column(
+                  children: [
+                    Text(
+                      'Aether',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 40,
+                        fontWeight: FontWeight.w800,
+                        color: _kPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Your high-energy creative study hub.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: _kMutedGray,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(_kCardRadius),
+                        border: Border.all(color: _kBorderBlack, width: 2),
+                        boxShadow: _kNeoShadow,
+                      ),
+                      padding: const EdgeInsets.all(_kCardPadding),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Welcome Back',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              color: _kBorderBlack,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Enter your details to dive back in.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: _kMutedGray,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _emailField(),
+                          const SizedBox(height: 20),
+                          _passwordField(auth),
+                          if (firebaseError != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              firebaseError!,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: Colors.red,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 24),
+                          _continueButton(auth),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Divider(
+                                  color: _kBorderBlack,
+                                  thickness: 1,
+                                ),
+                              ),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  'or join with',
+                                  style: dividerLabelStyle,
+                                ),
+                              ),
+                              const Expanded(
+                                child: Divider(
+                                  color: _kBorderBlack,
+                                  thickness: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          _googleButton(auth),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        _buildHeader(),
-                        const SizedBox(height: 28),
-                        _buildLoginCard(auth),
-                        const SizedBox(height: 28),
-                        _buildFooter(),
+                        Text("Don't have an account? ", style: footerStyle),
+                        GestureDetector(
+                          onTap: isLoading
+                              ? null
+                              : () => Navigator.of(context)
+                                  .pushNamed(LoginScreenRoutes.register),
+                          child: Text(
+                            'Register now',
+                            style: footerStyle.copyWith(
+                              color: _kPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ),
       ),
