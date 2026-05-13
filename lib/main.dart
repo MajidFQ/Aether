@@ -1,7 +1,30 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-void main() {
-  runApp(const MainApp());
+import 'firebase_options.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
+import 'screens/home/home_screen.dart';
+import 'services/auth_service.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Do not call GoogleSignIn.instance.initialize() here: on web it requires an
+  // OAuth Web client ID (meta tag or dart-define) and will assert before runApp,
+  // which shows a blank page. Initialization runs lazily in AuthService when
+  // the user taps "Google".
+
+  runApp(
+    Provider<AuthService>(
+      create: (_) => AuthService(),
+      child: const MainApp(),
+    ),
+  );
 }
 
 class MainApp extends StatelessWidget {
@@ -9,12 +32,18 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
+    return MaterialApp(
+      title: 'Aether',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF5B4FFF)),
+        useMaterial3: true,
       ),
+      home: const LoginScreen(),
+      routes: {
+        LoginScreenRoutes.home: (_) => const HomeScreen(),
+        LoginScreenRoutes.register: (_) => const RegisterScreen(),
+      },
     );
   }
 }

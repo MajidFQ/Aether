@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "299192840926",
+    "project_id": "aether-a9407",
+    "storage_bucket": "aether-a9407.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:299192840926:android:ff1b2754491dad2afe484f",
+        "android_client_info": {
+          "package_name": "com.example.aether"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "299192840926-apsftvtbmnmdvpnvjqvok58qg1d7vv6h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.aether",
+            "certificate_hash": "75aa351c6776ef4545d9b77817a4d3819c16628f"
+          }
+        },
+        {
+          "client_id": "299192840926-98oa50p0fos4ksmi2a8b36h12bvhga24.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtEEwjCJHnN_29HUFKohNOZEwgzZfHinI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "299192840926-98oa50p0fos4ksmi2a8b36h12bvhga24.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
