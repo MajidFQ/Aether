@@ -132,7 +132,18 @@ class _LoginScreenState extends State<LoginScreen> {
     } on FirebaseAuthException catch (e) {
       setState(() => _mapFirebaseAuthError(e));
     } catch (e) {
-      setState(() => firebaseError = 'Unexpected error: $e');
+      // On web, Firebase errors can bypass the typed catch — extract from toString
+      final raw = e.toString();
+      final match = RegExp(r'\[firebase_auth/([^\]]+)\](.*)').firstMatch(raw);
+      if (match != null) {
+        final code = match.group(1)!.trim();
+        final msg = match.group(2)!.trim();
+        setState(() => _mapFirebaseAuthError(
+              FirebaseAuthException(code: code, message: msg.isEmpty ? null : msg),
+            ));
+      } else {
+        setState(() => firebaseError = raw.isNotEmpty ? raw : 'Something went wrong. Please try again.');
+      }
     } finally {
       if (mounted) setState(() => isLoading = false);
     }

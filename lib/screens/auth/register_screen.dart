@@ -1,26 +1,279 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
-/// Placeholder registration screen. Wire up your sign-up form here later.
-class RegisterScreen extends StatelessWidget {
+import '../../services/auth_service.dart';
+import '../../widgets/custom_text_field.dart';
+
+// --- Design tokens (matches LoginScreen exactly) ---
+
+const Color _kPrimary = Color(0xFF5B4FFF);
+const Color _kPageBackground = Color(0xFFF5F5F7);
+const Color _kBorderBlack = Color(0xFF000000);
+const Color _kMutedGray = Color(0xFF6B6B70);
+
+const double _kCardRadius = 16;
+const double _kControlRadius = 12;
+const double _kCardPadding = 24;
+
+const List<BoxShadow> _kNeoShadow = [
+  BoxShadow(
+    color: Colors.black,
+    offset: Offset(4, 4),
+    blurRadius: 0,
+    spreadRadius: 0,
+  ),
+];
+
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('Registration will live here.'),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Back to login'),
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _signUp(AuthService auth) async {
+    FocusScope.of(context).unfocus();
+
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await auth.registerWithEmail(email: email, password: password);
+      await FirebaseAuth.instance.currentUser?.updateDisplayName(name);
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/home');
+    } catch (e) {
+      print('Registration Error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Widget _signUpButton(AuthService auth) {
+    return Container(
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(_kControlRadius)),
+        boxShadow: _kNeoShadow,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(_kControlRadius),
+          onTap: _isLoading ? null : () => _signUp(auth),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(_kControlRadius),
+              border: Border.all(color: _kBorderBlack, width: 2),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF5B4FFF), Color(0xFF4A3FD9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ],
+            ),
+            child: SizedBox(
+              height: 52,
+              child: Center(
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'Sign Up →',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.read<AuthService>();
+    final textTheme = GoogleFonts.plusJakartaSansTextTheme(
+      Theme.of(context).textTheme,
+    );
+    final footerStyle = GoogleFonts.plusJakartaSans(
+      fontSize: 15,
+      fontWeight: FontWeight.w500,
+      color: _kMutedGray,
+    );
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        textTheme: textTheme,
+        scaffoldBackgroundColor: _kPageBackground,
+      ),
+      child: Scaffold(
+        backgroundColor: _kPageBackground,
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: Column(
+                  children: [
+                    // Brand header
+                    Text(
+                      'Aether',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 40,
+                        fontWeight: FontWeight.w800,
+                        color: _kPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Your high-energy creative study hub.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: _kMutedGray,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Card
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(_kCardRadius),
+                        border: Border.all(color: _kBorderBlack, width: 2),
+                        boxShadow: _kNeoShadow,
+                      ),
+                      padding: const EdgeInsets.all(_kCardPadding),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Create Account',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              color: _kBorderBlack,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Enter your details to get started.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: _kMutedGray,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Name field
+                          CustomTextField(
+                            label: 'Name',
+                            controller: _nameController,
+                            hintText: 'Your full name',
+                            keyboardType: TextInputType.name,
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Email field
+                          CustomTextField(
+                            label: 'Email Address',
+                            controller: _emailController,
+                            hintText: 'hello@aether.app',
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Password field
+                          CustomTextField(
+                            label: 'Password',
+                            controller: _passwordController,
+                            hintText: '••••••••',
+                            obscureText: true,
+                            autocorrect: false,
+                            keyboardType: TextInputType.visiblePassword,
+                            textInputAction: TextInputAction.done,
+                          ),
+                          const SizedBox(height: 24),
+
+                          _signUpButton(auth),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Footer
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text('Already have an account? ', style: footerStyle),
+                        GestureDetector(
+                          onTap: _isLoading
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          child: Text(
+                            'Login now',
+                            style: footerStyle.copyWith(
+                              color: _kPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
