@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -27,39 +29,54 @@ class Message {
   final String text;
   final bool isUser;
   final DateTime timestamp;
+
+  Map<String, dynamic> toMap() => {
+        'text': text,
+        'isUser': isUser,
+        'timestamp': timestamp.toIso8601String(),
+      };
+
+  factory Message.fromMap(Map<String, dynamic> map) => Message(
+        text: map['text'] as String,
+        isUser: map['isUser'] as bool,
+        timestamp: DateTime.parse(map['timestamp'] as String),
+      );
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  /// Pass [initialMessages] to pre-populate the chat from history.
+  const ChatScreen({super.key, this.initialMessages});
+  final List<Message>? initialMessages;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final GroqService _claude = GroqService();
+  final GroqService _groq = GroqService();
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  // Start with two sample messages so the screen isn't empty on first open.
-  final List<Message> _messages = [
-    Message(
-      text:
-          "Hey there! I've analyzed your upcoming Quantum Physics quiz. Would you like to start with a rapid-fire review or dive into the complex formulas first? 🚀",
-      isUser: false,
-      timestamp: DateTime.now().subtract(const Duration(minutes: 2)),
-    ),
-    Message(
-      text:
-          "Let's start with the formulas. I'm specifically struggling with Schrödinger's wave equation today.",
-      isUser: true,
-      timestamp: DateTime.now().subtract(const Duration(minutes: 1)),
-    ),
-  ];
-
+  late final List<Message> _messages;
   bool _isLoading = false;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Use pre-loaded messages from history, or start fresh with a greeting.
+    _messages = widget.initialMessages ??
+        [
+          Message(
+            text:
+                "Hey there! I'm Aether AI, your study assistant. What would you like to work on today? 🚀",
+            isUser: false,
+            timestamp: DateTime.now(),
+          ),
+        ];
+  }
 
   @override
   void dispose() {
@@ -68,7 +85,8 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  // Smoothly scroll to the latest message after the frame renders.
+  // ── Scroll ─────────────────────────────────────────────────────────────────
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -81,11 +99,12 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  // ── Send message ───────────────────────────────────────────────────────────
+
   Future<void> _sendMessage() async {
     final text = _inputController.text.trim();
     if (text.isEmpty || _isLoading) return;
 
-    // 1. Add the user's message and clear the input field.
     setState(() {
       _messages.add(Message(text: text, isUser: true, timestamp: DateTime.now()));
       _isLoading = true;
@@ -94,10 +113,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     try {
-      // 2. Call the Claude API — key is read from .env inside ClaudeService.
-      final reply = await _claude.getChatResponse(text);
-
-      // 3. Add the AI reply.
+      final reply = await _groq.getChatResponse(text);
       if (!mounted) return;
       setState(() {
         _messages.add(
@@ -119,6 +135,124 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  // ── Save chat to Firestore ─────────────────────────────────────────────────
+
+  Future<void> _saveChat() async {
+    // Need at least one real exchange beyond the greeting.
+    if (_messages.length <= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Start a conversation before saving.')),
+      );
+      return;
+    }
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    // Default name = first user message, truncated.
+    final defaultName = _messages
+        .firstWhere((m) => m.isUser, orElse: () => _messages.first)
+        .text;
+    final nameController = TextEditingController(
+      text: defaultName.length > 60
+          ? '${defaultName.substring(0, 60)}...'
+          : defaultName,
+    );
+
+    // Ask the user to name the chat before saving.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: _kBorderBlack, width: 2),
+        ),
+        title: Text(
+          'Save chat',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+        ),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          maxLength: 80,
+          style: GoogleFonts.plusJakartaSans(fontSize: 14),
+          decoration: InputDecoration(
+            labelText: 'Chat name',
+            labelStyle: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w600,
+              color: _kBorderBlack,
+            ),
+            filled: true,
+            fillColor: _kPageBg,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _kBorderBlack, width: 2),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _kPrimary, width: 2),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.plusJakartaSans(color: _kMutedGray),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              'Save',
+              style: GoogleFonts.plusJakartaSans(
+                color: _kPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final chatName = nameController.text.trim();
+    nameController.dispose();
+
+    // User cancelled or left name empty.
+    if (confirmed != true || chatName.isEmpty) return;
+
+    setState(() => _isSaving = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('chats')
+          .add({
+        'messages': _messages.map((m) => m.toMap()).toList(),
+        'firstQuestion': chatName,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chat saved! 💾')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
   // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
@@ -135,9 +269,7 @@ class _ChatScreenState extends State<ChatScreen> {
         appBar: _buildAppBar(),
         body: Column(
           children: [
-            // Messages list — takes all available space above the input bar.
             Expanded(child: _buildMessageList()),
-            // Typing indicator shown while waiting for Claude's response.
             if (_isLoading) _buildTypingIndicator(),
             _buildInputBar(),
           ],
@@ -165,21 +297,49 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       centerTitle: true,
       actions: [
+        // History button
+        IconButton(
+          icon: const Icon(Icons.history, color: _kBorderBlack),
+          tooltip: 'Chat history',
+          onPressed: () => Navigator.of(context).pushNamed('/chat-history'),
+        ),
+        // Save button
+        _isSaving
+            ? const Padding(
+                padding: EdgeInsets.all(12),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : IconButton(
+                icon: const Icon(Icons.save_outlined, color: _kBorderBlack),
+                tooltip: 'Save chat',
+                onPressed: _saveChat,
+              ),
+        const SizedBox(width: 4),
+        // Avatar
         Padding(
-          padding: const EdgeInsets.only(right: 16),
+          padding: const EdgeInsets.only(right: 12),
           child: Container(
-            width: 36,
-            height: 36,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               color: _kPrimary,
               shape: BoxShape.circle,
               border: Border.all(color: _kBorderBlack, width: 2),
               boxShadow: const [
-                BoxShadow(color: Colors.black, offset: Offset(2, 2), blurRadius: 0),
+                BoxShadow(
+                    color: Colors.black, offset: Offset(2, 2), blurRadius: 0),
               ],
             ),
             child: const Center(
-              child: Text('A', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+              child: Text(
+                'A',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w800),
+              ),
             ),
           ),
         ),
@@ -192,7 +352,8 @@ class _ChatScreenState extends State<ChatScreen> {
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: _messages.length,
-      itemBuilder: (context, index) => _MessageBubble(message: _messages[index]),
+      itemBuilder: (context, index) =>
+          _MessageBubble(message: _messages[index]),
     );
   }
 
@@ -223,7 +384,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       child: Row(
         children: [
-          // Text input field
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -253,15 +413,15 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                   ),
-                  // Attach icon — placeholder, does nothing
                   IconButton(
-                    icon: const Icon(Icons.attach_file, size: 20, color: _kMutedGray),
+                    icon: const Icon(Icons.attach_file,
+                        size: 20, color: _kMutedGray),
                     onPressed: () {},
                     tooltip: 'Attach',
                   ),
-                  // Mic icon — placeholder, does nothing
                   IconButton(
-                    icon: const Icon(Icons.mic_none, size: 20, color: _kMutedGray),
+                    icon: const Icon(Icons.mic_none,
+                        size: 20, color: _kMutedGray),
                     onPressed: () {},
                     tooltip: 'Voice',
                   ),
@@ -270,7 +430,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          // Send button
           GestureDetector(
             onTap: _sendMessage,
             child: Container(
@@ -309,7 +468,6 @@ class _MessageBubble extends StatelessWidget {
         crossAxisAlignment:
             isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          // Sender label + timestamp
           Padding(
             padding: const EdgeInsets.only(bottom: 4, left: 4, right: 4),
             child: Row(
@@ -319,9 +477,7 @@ class _MessageBubble extends StatelessWidget {
                       Text(
                         '$timeStr  ',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          color: _kMutedGray,
-                        ),
+                            fontSize: 11, color: _kMutedGray),
                       ),
                       Text(
                         'You',
@@ -344,14 +500,11 @@ class _MessageBubble extends StatelessWidget {
                       Text(
                         timeStr,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          color: _kMutedGray,
-                        ),
+                            fontSize: 11, color: _kMutedGray),
                       ),
                     ],
             ),
           ),
-          // Bubble
           Container(
             constraints: BoxConstraints(
               maxWidth: MediaQuery.of(context).size.width * 0.75,

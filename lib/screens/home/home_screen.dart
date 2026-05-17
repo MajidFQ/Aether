@@ -25,12 +25,6 @@ class HomeScreen extends StatelessWidget {
     Navigator.of(context).pushReplacementNamed('/login');
   }
 
-  void _comingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Coming soon!')),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -154,7 +148,8 @@ class HomeScreen extends StatelessWidget {
                           subtitle: 'Review & study',
                           titleColor: _kBorderBlack,
                           subtitleColor: _kMutedGray,
-                          onTap: () => _comingSoon(context),
+                          onTap: () =>
+                              Navigator.of(context).pushNamed('/flashcards'),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -166,7 +161,7 @@ class HomeScreen extends StatelessWidget {
                           subtitle: 'Focus session',
                           titleColor: _kBrown,
                           subtitleColor: _kBrown,
-                          onTap: () => _comingSoon(context),
+                          onTap: () => Navigator.of(context).pushNamed('/timer'),
                         ),
                       ),
                     ],

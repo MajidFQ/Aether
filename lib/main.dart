@@ -7,8 +7,13 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
+import 'screens/chat/chat_history_screen.dart';
 import 'screens/chat/chat_screen.dart';
+import 'screens/flashcards/create_deck_screen.dart';
+import 'screens/flashcards/deck_list_screen.dart';
+import 'screens/flashcards/study_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/timer/timer_screen.dart';
 import 'services/auth_service.dart';
 
 Future<void> main() async {
@@ -44,6 +49,11 @@ class MainApp extends StatelessWidget {
       routes: {
         '/login': (_) => const LoginScreen(),
         '/chat': (_) => const ChatScreen(),
+        '/chat-history': (_) => const ChatHistoryScreen(),
+        '/timer': (_) => const TimerScreen(),
+        '/flashcards': (_) => const DeckListScreen(),
+        '/create-deck': (_) => const CreateDeckScreen(),
+        '/study': (_) => const StudyScreen(),
         LoginScreenRoutes.home: (_) => const HomeScreen(),
         LoginScreenRoutes.register: (_) => const RegisterScreen(),
       },
