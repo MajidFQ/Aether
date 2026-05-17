@@ -5,171 +5,360 @@ import 'package:provider/provider.dart';
 
 import '../../services/auth_service.dart';
 
-// --- Design tokens (matches LoginScreen / RegisterScreen) ---
-
+// --- Design tokens ---
 const Color _kPrimary = Color(0xFF5B4FFF);
-const Color _kPageBackground = Color(0xFFF5F5F7);
+const Color _kBrown = Color(0xFFC87941);
+const Color _kPageBg = Color(0xFFF5F5F7);
 const Color _kBorderBlack = Color(0xFF000000);
 const Color _kMutedGray = Color(0xFF6B6B70);
 
-const double _kCardRadius = 16;
-const double _kControlRadius = 12;
-const double _kCardPadding = 24;
-
 const List<BoxShadow> _kNeoShadow = [
-  BoxShadow(
-    color: Colors.black,
-    offset: Offset(4, 4),
-    blurRadius: 0,
-    spreadRadius: 0,
-  ),
+  BoxShadow(color: Colors.black, offset: Offset(4, 4), blurRadius: 0),
 ];
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   Future<void> _logout(BuildContext context) async {
-    final auth = context.read<AuthService>();
-    await auth.signOut();
+    await context.read<AuthService>().signOut();
     if (!context.mounted) return;
     Navigator.of(context).pushReplacementNamed('/login');
   }
 
+  void _comingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Coming soon!')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final email = FirebaseAuth.instance.currentUser?.email ?? 'Unknown user';
-    final textTheme = GoogleFonts.plusJakartaSansTextTheme(
-      Theme.of(context).textTheme,
-    );
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName ?? user?.email ?? 'there';
+    final firstName = displayName.split(' ').first;
+    final initial = firstName[0].toUpperCase();
 
     return Theme(
       data: Theme.of(context).copyWith(
-        textTheme: textTheme,
-        scaffoldBackgroundColor: _kPageBackground,
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(
+          Theme.of(context).textTheme,
+        ),
+        scaffoldBackgroundColor: _kPageBg,
       ),
       child: Scaffold(
-        backgroundColor: _kPageBackground,
-        appBar: AppBar(
-          backgroundColor: _kPageBackground,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          title: Text(
-            'Aether',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: _kPrimary,
-            ),
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: TextButton(
-                onPressed: () => _logout(context),
-                style: TextButton.styleFrom(
-                  foregroundColor: _kMutedGray,
-                  textStyle: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                child: const Text('Logout'),
-              ),
-            ),
-          ],
-        ),
+        backgroundColor: _kPageBg,
         body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(_kCardRadius),
-                    border: Border.all(color: _kBorderBlack, width: 2),
-                    boxShadow: _kNeoShadow,
-                  ),
-                  padding: const EdgeInsets.all(_kCardPadding),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Heading
-                      Text(
-                        'Welcome to Aether!',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          color: _kBorderBlack,
-                        ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Top bar ──────────────────────────────────────────
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.menu, size: 26),
+                      onPressed: () {},
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Aether',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: _kPrimary,
                       ),
-                      const SizedBox(height: 8),
-
-                      // User email
-                      Text(
-                        email,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: _kMutedGray,
+                    ),
+                    const Spacer(),
+                    // Profile avatar
+                    GestureDetector(
+                      onTap: () => _logout(context),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: _kPrimary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: _kBorderBlack, width: 2),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black,
+                              offset: Offset(2, 2),
+                              blurRadius: 0,
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // "Start Studying" button
-                      Container(
-                        decoration: const BoxDecoration(
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(_kControlRadius),
-                          ),
-                          boxShadow: _kNeoShadow,
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius:
-                                BorderRadius.circular(_kControlRadius),
-                            onTap: () {},
-                            child: Ink(
-                              decoration: BoxDecoration(
-                                borderRadius:
-                                    BorderRadius.circular(_kControlRadius),
-                                border:
-                                    Border.all(color: _kBorderBlack, width: 2),
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF5B4FFF),
-                                    Color(0xFF4A3FD9),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
-                              child: SizedBox(
-                                height: 52,
-                                child: Center(
-                                  child: Text(
-                                    'Start Studying →',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                        child: Center(
+                          child: Text(
+                            initial,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
                             ),
                           ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // ── Greeting ─────────────────────────────────────────
+                Text(
+                  'Hi $firstName! 👋',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: _kBorderBlack,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Ready to crush your goals today?',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: _kMutedGray,
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                // ── Three action cards ────────────────────────────────
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _ActionCard(
+                          background: _kPrimary,
+                          iconEmoji: '💬',
+                          title: 'Chat',
+                          subtitle: 'Ask Aether AI',
+                          titleColor: Colors.white,
+                          subtitleColor: Colors.white70,
+                          onTap: () =>
+                              Navigator.of(context).pushNamed('/chat'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _ActionCard(
+                          background: const Color(0xFFEEEEF5),
+                          iconEmoji: '📚',
+                          title: 'Flashcards',
+                          subtitle: 'Review & study',
+                          titleColor: _kBorderBlack,
+                          subtitleColor: _kMutedGray,
+                          onTap: () => _comingSoon(context),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _ActionCard(
+                          background: const Color(0xFFF5DFC0),
+                          iconEmoji: '⏱️',
+                          title: 'Timer',
+                          subtitle: 'Focus session',
+                          titleColor: _kBrown,
+                          subtitleColor: _kBrown,
+                          onTap: () => _comingSoon(context),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
+
+                const SizedBox(height: 32),
+
+                // ── Upcoming Tasks ────────────────────────────────────
+                Text(
+                  '📅 Upcoming Tasks',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: _kBorderBlack,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _TaskCard(
+                        title: 'Physics 101 - Review Mechanics',
+                        time: 'Today, 4:00 PM',
+                        accentColor: const Color(0xFF5B6BFF),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _TaskCard(
+                        title: 'Modern History Essay Draft',
+                        time: 'Tomorrow, 10:00 AM',
+                        accentColor: const Color(0xFFB0B0B8),
+                        muted: true,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+              ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Action Card ───────────────────────────────────────────────────────────────
+
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
+    required this.background,
+    required this.iconEmoji,
+    required this.title,
+    required this.subtitle,
+    required this.titleColor,
+    required this.subtitleColor,
+    required this.onTap,
+  });
+
+  final Color background;
+  final String iconEmoji;
+  final String title;
+  final String subtitle;
+  final Color titleColor;
+  final Color subtitleColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _kBorderBlack, width: 2),
+          boxShadow: _kNeoShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(iconEmoji, style: const TextStyle(fontSize: 26)),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: titleColor,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: subtitleColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Task Card ─────────────────────────────────────────────────────────────────
+
+class _TaskCard extends StatelessWidget {
+  const _TaskCard({
+    required this.title,
+    required this.time,
+    required this.accentColor,
+    this.muted = false,
+  });
+
+  final String title;
+  final String time;
+  final Color accentColor;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: muted ? const Color(0xFFCCCCCC) : _kBorderBlack,
+          width: 2,
+        ),
+        boxShadow: muted ? [] : _kNeoShadow,
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Colored left accent bar
+            Container(
+              width: 4,
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  bottomLeft: Radius.circular(10),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 12,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: muted ? _kMutedGray : _kBorderBlack,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      time,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: _kMutedGray,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Icon(
+                Icons.more_vert,
+                size: 18,
+                color: _kMutedGray,
+              ),
+            ),
+          ],
         ),
       ),
     );
