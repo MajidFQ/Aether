@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/theme_provider.dart';
-import '../../services/auth_service.dart';
 
 // --- Design tokens ---
 const Color _kPrimary = Color(0xFF5B4FFF);
@@ -179,12 +178,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _logout(BuildContext context) async {
-    await context.read<AuthService>().signOut();
-    if (!context.mounted) return;
-    Navigator.of(context).pushReplacementNamed('/login');
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -245,9 +238,9 @@ class HomeScreen extends StatelessWidget {
                       constraints: const BoxConstraints(),
                     ),
                     const SizedBox(width: 12),
-                    // Profile avatar
+                    // Profile avatar — tap to open profile
                     GestureDetector(
-                      onTap: () => _logout(context),
+                      onTap: () => Navigator.of(context).pushNamed('/profile'),
                       child: Container(
                         width: 40,
                         height: 40,
