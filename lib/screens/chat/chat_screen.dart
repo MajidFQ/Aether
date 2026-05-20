@@ -199,30 +199,23 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.plusJakartaSans(color: _kMutedGray),
-            ),
+            child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: _kMutedGray)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              'Save',
-              style: GoogleFonts.plusJakartaSans(
-                color: _kPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            child: Text('Save', style: GoogleFonts.plusJakartaSans(color: _kPrimary, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
     );
 
+    // FIX 1: Capture the text immediately
     final chatName = nameController.text.trim();
-    nameController.dispose();
 
-    // User cancelled or left name empty.
-    if (confirmed != true || chatName.isEmpty) return;
+    // FIX 2: Check conditions safely
+    if (confirmed != true || chatName.isEmpty) {
+      return;
+    }
 
     setState(() => _isSaving = true);
     try {
@@ -243,13 +236,10 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Failed to save: $e'), backgroundColor: Colors.red),
       );
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+          if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -257,14 +247,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(
-          Theme.of(context).textTheme,
-        ),
-        scaffoldBackgroundColor: _kPageBg,
-      ),
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: _kPageBg,
         appBar: _buildAppBar(),
         body: Column(
@@ -274,8 +257,7 @@ class _ChatScreenState extends State<ChatScreen> {
             _buildInputBar(),
           ],
         ),
-      ),
-    );
+      );
   }
 
   PreferredSizeWidget _buildAppBar() {
