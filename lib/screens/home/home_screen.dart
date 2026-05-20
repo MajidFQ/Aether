@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import '../../providers/theme_provider.dart';
 import '../../services/auth_service.dart';
 
 // --- Design tokens ---
@@ -31,16 +32,19 @@ class HomeScreen extends StatelessWidget {
     final displayName = user?.displayName ?? user?.email ?? 'there';
     final firstName = displayName.split(' ').first;
     final initial = firstName[0].toUpperCase();
+    
+    final isDark = Provider.of<ThemeProvider>(context).isDark;
+    final bgColor = isDark ? const Color(0xFF1E1E2E) : _kPageBg;
+    final textColor = isDark ? Colors.white : _kBorderBlack;
 
     return Theme(
       data: Theme.of(context).copyWith(
         textTheme: GoogleFonts.plusJakartaSansTextTheme(
           Theme.of(context).textTheme,
         ),
-        scaffoldBackgroundColor: _kPageBg,
       ),
       child: Scaffold(
-        backgroundColor: _kPageBg,
+        backgroundColor: bgColor,
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -66,6 +70,22 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
+                    // Dark mode toggle
+                    IconButton(
+                      icon: Icon(
+                        Provider.of<ThemeProvider>(context).isDark
+                            ? Icons.light_mode
+                            : Icons.dark_mode,
+                        size: 24,
+                      ),
+                      onPressed: () {
+                        Provider.of<ThemeProvider>(context, listen: false)
+                            .toggleTheme();
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 12),
                     // Profile avatar
                     GestureDetector(
                       onTap: () => _logout(context),
@@ -107,7 +127,7 @@ class HomeScreen extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
-                    color: _kBorderBlack,
+                    color: textColor,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -176,7 +196,7 @@ class HomeScreen extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: _kBorderBlack,
+                    color: textColor,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -187,6 +207,7 @@ class HomeScreen extends StatelessWidget {
                         title: 'Physics 101 - Review Mechanics',
                         time: 'Today, 4:00 PM',
                         accentColor: const Color(0xFF5B6BFF),
+                        isDark: isDark,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -196,6 +217,7 @@ class HomeScreen extends StatelessWidget {
                         time: 'Tomorrow, 10:00 AM',
                         accentColor: const Color(0xFFB0B0B8),
                         muted: true,
+                        isDark: isDark,
                       ),
                     ),
                   ],
@@ -281,18 +303,23 @@ class _TaskCard extends StatelessWidget {
     required this.time,
     required this.accentColor,
     this.muted = false,
+    this.isDark = false,
   });
 
   final String title;
   final String time;
   final Color accentColor;
   final bool muted;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
+    final cardBg = isDark ? const Color(0xFF2A2A3E) : Colors.white;
+    final textColor = isDark ? Colors.white : _kBorderBlack;
+    
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: muted ? const Color(0xFFCCCCCC) : _kBorderBlack,
@@ -329,7 +356,7 @@ class _TaskCard extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: muted ? _kMutedGray : _kBorderBlack,
+                        color: muted ? _kMutedGray : textColor,
                       ),
                     ),
                     const SizedBox(height: 4),

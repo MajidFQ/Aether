@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../utils/theme_helper.dart';
+
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const Color _kPrimary = Color(0xFF5B4FFF);
 const Color _kPageBg = Color(0xFFF5F5F7);
@@ -21,22 +23,17 @@ class DeckListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
+    final bgColor = getBackgroundColor(context);
+    final textColor = getTextColor(context);
 
-    return Theme(
-      data: Theme.of(context).copyWith(
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(
-          Theme.of(context).textTheme,
-        ),
-        scaffoldBackgroundColor: _kPageBg,
-      ),
-      child: Scaffold(
-        backgroundColor: _kPageBg,
+    return Scaffold(
+        backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: _kPageBg,
+          backgroundColor: bgColor,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: _kBorderBlack),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
@@ -44,7 +41,7 @@ class DeckListScreen extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: _kBorderBlack,
+              color: textColor,
             ),
           ),
           actions: [
@@ -113,8 +110,7 @@ class DeckListScreen extends StatelessWidget {
                   );
                 },
               ),
-      ),
-    );
+      );
   }
 }
 
@@ -133,9 +129,12 @@ class _DeckTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = getCardColor(context);
+    final textColor = getTextColor(context);
+    
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _kBorderBlack, width: 2),
         boxShadow: _kNeoShadow,
@@ -168,7 +167,7 @@ class _DeckTile extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: _kBorderBlack,
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -223,6 +222,8 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = getTextColor(context);
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -236,7 +237,7 @@ class _EmptyState extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: _kBorderBlack,
+                color: textColor,
               ),
             ),
             const SizedBox(height: 8),

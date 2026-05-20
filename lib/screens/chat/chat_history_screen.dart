@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../utils/theme_helper.dart';
 import 'chat_screen.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -108,22 +109,17 @@ class ChatHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
+    final bgColor = getBackgroundColor(context);
+    final textColor = getTextColor(context);
 
-    return Theme(
-      data: Theme.of(context).copyWith(
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(
-          Theme.of(context).textTheme,
-        ),
-        scaffoldBackgroundColor: _kPageBg,
-      ),
-      child: Scaffold(
-        backgroundColor: _kPageBg,
+    return Scaffold(
+        backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: _kPageBg,
+          backgroundColor: bgColor,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: _kBorderBlack),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
@@ -131,7 +127,7 @@ class ChatHistoryScreen extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: _kBorderBlack,
+              color: textColor,
             ),
           ),
         ),
@@ -190,8 +186,7 @@ class ChatHistoryScreen extends StatelessWidget {
                   );
                 },
               ),
-      ),
-    );
+      );
   }
 }
 
@@ -217,6 +212,10 @@ class _ChatHistoryTile extends StatelessWidget {
     final dateStr = createdAt != null
         ? DateFormat('MMM d, yyyy • h:mm a').format(createdAt!)
         : 'Unknown date';
+    
+    final cardColor = getCardColor(context);
+    final textColor = getTextColor(context);
+    final mutedColor = getMutedTextColor(context);
 
     return GestureDetector(
       onTap: onTap,
@@ -224,7 +223,7 @@ class _ChatHistoryTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: _kBorderBlack, width: 2),
           boxShadow: _kNeoShadow,
@@ -257,7 +256,7 @@ class _ChatHistoryTile extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: _kBorderBlack,
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -265,7 +264,7 @@ class _ChatHistoryTile extends StatelessWidget {
                     '$dateStr  •  $messageCount messages',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
-                      color: _kMutedGray,
+                      color: mutedColor,
                     ),
                   ),
                 ],
@@ -278,7 +277,7 @@ class _ChatHistoryTile extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Icon(Icons.edit_outlined,
-                    size: 18, color: _kMutedGray),
+                    size: 18, color: mutedColor),
               ),
             ),
           ],
@@ -295,6 +294,9 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = getTextColor(context);
+    final mutedColor = getMutedTextColor(context);
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -308,14 +310,14 @@ class _EmptyState extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: _kBorderBlack,
+                color: textColor,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Start a conversation and tap 💾 to save it.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: _kMutedGray),
+              style: GoogleFonts.plusJakartaSans(color: mutedColor),
             ),
           ],
         ),

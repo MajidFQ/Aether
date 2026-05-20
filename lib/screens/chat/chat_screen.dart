@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../services/groq_service.dart';
+import '../../utils/theme_helper.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const Color _kPrimary = Color(0xFF5B4FFF);
@@ -247,8 +248,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = getBackgroundColor(context);
     return Scaffold(
-        backgroundColor: _kPageBg,
+        backgroundColor: bgColor,
         appBar: _buildAppBar(),
         body: Column(
           children: [
@@ -261,12 +263,14 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final bgColor = getBackgroundColor(context);
+    final textColor = getTextColor(context);
     return AppBar(
-      backgroundColor: _kPageBg,
+      backgroundColor: bgColor,
       elevation: 0,
       scrolledUnderElevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: _kBorderBlack),
+        icon: Icon(Icons.arrow_back, color: textColor),
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
@@ -281,7 +285,7 @@ class _ChatScreenState extends State<ChatScreen> {
       actions: [
         // History button
         IconButton(
-          icon: const Icon(Icons.history, color: _kBorderBlack),
+          icon: Icon(Icons.history, color: textColor),
           tooltip: 'Chat history',
           onPressed: () => Navigator.of(context).pushNamed('/chat-history'),
         ),
@@ -296,7 +300,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               )
             : IconButton(
-                icon: const Icon(Icons.save_outlined, color: _kBorderBlack),
+                icon: Icon(Icons.save_outlined, color: textColor),
                 tooltip: 'Save chat',
                 onPressed: _saveChat,
               ),
@@ -358,18 +362,21 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildInputBar() {
+    final cardColor = getCardColor(context);
+    final bgColor = getBackgroundColor(context);
+    final mutedColor = getMutedTextColor(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: _kBorderBlack, width: 2)),
+      decoration: BoxDecoration(
+        color: cardColor,
+        border: const Border(top: BorderSide(color: _kBorderBlack, width: 2)),
       ),
       child: Row(
         children: [
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: _kPageBg,
+                color: bgColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: _kBorderBlack, width: 2),
               ),
@@ -384,7 +391,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       decoration: InputDecoration(
                         hintText: 'Ask Aether anything...',
                         hintStyle: GoogleFonts.plusJakartaSans(
-                          color: _kMutedGray,
+                          color: mutedColor,
                           fontSize: 14,
                         ),
                         border: InputBorder.none,
@@ -396,14 +403,14 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.attach_file,
-                        size: 20, color: _kMutedGray),
+                    icon: Icon(Icons.attach_file,
+                        size: 20, color: mutedColor),
                     onPressed: () {},
                     tooltip: 'Attach',
                   ),
                   IconButton(
-                    icon: const Icon(Icons.mic_none,
-                        size: 20, color: _kMutedGray),
+                    icon: Icon(Icons.mic_none,
+                        size: 20, color: mutedColor),
                     onPressed: () {},
                     tooltip: 'Voice',
                   ),

@@ -18,6 +18,7 @@ dependencies:
   
   # State Management
   provider: ^6.1.1
+  shared_preferences: ^2.2.2
   
   # AI & HTTP
   http: ^1.1.0

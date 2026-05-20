@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../utils/theme_helper.dart';
+
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const Color _kPrimary = Color(0xFF5B4FFF);
 const Color _kPageBg = Color(0xFFF5F5F7);
@@ -163,21 +165,18 @@ class _TimerScreenState extends State<TimerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(
-          Theme.of(context).textTheme,
-        ),
-        scaffoldBackgroundColor: _kPageBg,
-      ),
-      child: Scaffold(
-        backgroundColor: _kPageBg,
+    final bgColor = getBackgroundColor(context);
+    final textColor = getTextColor(context);
+    final cardColor = getCardColor(context);
+    
+    return Scaffold(
+        backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: _kPageBg,
+          backgroundColor: bgColor,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: _kBorderBlack),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
@@ -185,7 +184,7 @@ class _TimerScreenState extends State<TimerScreen> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: _kBorderBlack,
+              color: textColor,
             ),
           ),
         ),
@@ -223,7 +222,7 @@ class _TimerScreenState extends State<TimerScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _kBorderBlack, width: 2),
                   boxShadow: _kNeoShadow,
@@ -239,7 +238,7 @@ class _TimerScreenState extends State<TimerScreen> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: _kBorderBlack,
+                        color: textColor,
                       ),
                     ),
                   ],
@@ -250,11 +249,11 @@ class _TimerScreenState extends State<TimerScreen> {
             ],
           ),
         ),
-      ),
     );
   }
 
   Widget _buildButtons() {
+    final cardColor = getCardColor(context);
     return Column(
       children: [
         // Start button — full width, purple
@@ -314,7 +313,7 @@ class _TimerScreenState extends State<TimerScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: Colors.white,
+                        backgroundColor: cardColor,
                       ),
                       onPressed: _pause,
                       child: Text(
@@ -365,6 +364,9 @@ class _CircularTimer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = getCardColor(context);
+    final textColor = getTextColor(context);
+    
     return SizedBox(
       width: 240,
       height: 240,
@@ -389,7 +391,7 @@ class _CircularTimer extends StatelessWidget {
             width: 240,
             height: 240,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               shape: BoxShape.circle,
               border: Border.all(color: _kBorderBlack, width: 3),
             ),
@@ -412,7 +414,7 @@ class _CircularTimer extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 52,
               fontWeight: FontWeight.w800,
-              color: _kBorderBlack,
+              color: textColor,
             ),
           ),
         ],
