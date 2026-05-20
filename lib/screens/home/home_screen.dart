@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/theme_provider.dart';
@@ -19,6 +21,163 @@ const List<BoxShadow> _kNeoShadow = [
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  void _showTaskDetail(
+    BuildContext context,
+    Map<String, dynamic> data,
+    QueryDocumentSnapshot doc,
+    Color priorityColor,
+    bool isDark,
+    Color textColor,
+  ) {
+    final dueDate = DateTime.parse(data['dueDate']);
+    final description = data['description'] as String? ?? '';
+    final priority = data['priority'] ?? 'medium';
+    final cardColor = isDark ? const Color(0xFF2A2A3E) : Colors.white;
+    final bgColor = isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF5F5F7);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: const Border(
+            top: BorderSide(color: _kBorderBlack, width: 2),
+            left: BorderSide(color: _kBorderBlack, width: 2),
+            right: BorderSide(color: _kBorderBlack, width: 2),
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _kMutedGray,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Priority badge + title
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: priorityColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _kBorderBlack, width: 1.5),
+                  ),
+                  child: Text(
+                    priority[0].toUpperCase() + priority.substring(1),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    data['title'] ?? 'Untitled',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Due date
+            Row(
+              children: [
+                const Icon(Icons.schedule, size: 16, color: _kMutedGray),
+                const SizedBox(width: 6),
+                Text(
+                  DateFormat('EEEE, MMM dd yyyy • hh:mm a').format(dueDate),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    color: _kMutedGray,
+                  ),
+                ),
+              ],
+            ),
+
+            // Description
+            if (description.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _kBorderBlack, width: 2),
+                ),
+                child: Text(
+                  description,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    color: textColor,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 20),
+
+            // Mark complete button
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await doc.reference.update({'isCompleted': true});
+                  if (!ctx.mounted) return;
+                  Navigator.of(ctx).pop();
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Task completed! 🎉')),
+                  );
+                },
+                icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                label: Text(
+                  'Mark as Complete',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: _kBorderBlack, width: 2),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _logout(BuildContext context) async {
     await context.read<AuthService>().signOut();
@@ -191,36 +350,152 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 32),
 
                 // ── Upcoming Tasks ────────────────────────────────────
-                Text(
-                  '📅 Upcoming Tasks',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: textColor,
-                  ),
-                ),
-                const SizedBox(height: 12),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: _TaskCard(
-                        title: 'Physics 101 - Review Mechanics',
-                        time: 'Today, 4:00 PM',
-                        accentColor: const Color(0xFF5B6BFF),
-                        isDark: isDark,
+                    Text(
+                      '📅 Upcoming Tasks',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: textColor,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _TaskCard(
-                        title: 'Modern History Essay Draft',
-                        time: 'Tomorrow, 10:00 AM',
-                        accentColor: const Color(0xFFB0B0B8),
-                        muted: true,
-                        isDark: isDark,
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pushNamed('/add-task');
+                      },
+                      child: Text(
+                        '+ Add',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: _kPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user?.uid)
+                      .collection('tasks')
+                      .where('isCompleted', isEqualTo: false)
+                      .orderBy('dueDate')
+                      .limit(3)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF2A2A3E) : const Color(0xFFEEEEF5),
+                          border: Border.all(color: _kBorderBlack, width: 2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'No tasks yet. Tap + Add to create one!',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: _kMutedGray,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return Column(
+                      children: snapshot.data!.docs.map((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final dueDate = DateTime.parse(data['dueDate']);
+                        final priority = data['priority'] ?? 'medium';
+                        Color priorityColor = priority == 'high'
+                            ? Colors.red
+                            : (priority == 'medium' ? Colors.orange : Colors.green);
+
+                        return GestureDetector(
+                          onTap: () => _showTaskDetail(context, data, doc, priorityColor, isDark, textColor),
+                          child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF2A2A3E) : Colors.white,
+                            border: Border.all(color: _kBorderBlack, width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black,
+                                offset: Offset(4, 4),
+                                blurRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Colored left accent bar
+                                Container(
+                                  width: 4,
+                                  decoration: BoxDecoration(
+                                    color: priorityColor,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(10),
+                                      bottomLeft: Radius.circular(10),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 12,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          data['title'] ?? 'Untitled',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          DateFormat('MMM dd, hh:mm a').format(dueDate),
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: _kMutedGray,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.check_circle_outline),
+                                  color: Colors.green,
+                                  onPressed: () async {
+                                    await doc.reference.update({'isCompleted': true});
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Task completed! 🎉')),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          ), // Container
+                        ); // GestureDetector
+                      }).toList(),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 16),
@@ -286,98 +561,6 @@ class _ActionCard extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: subtitleColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Task Card ─────────────────────────────────────────────────────────────────
-
-class _TaskCard extends StatelessWidget {
-  const _TaskCard({
-    required this.title,
-    required this.time,
-    required this.accentColor,
-    this.muted = false,
-    this.isDark = false,
-  });
-
-  final String title;
-  final String time;
-  final Color accentColor;
-  final bool muted;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final cardBg = isDark ? const Color(0xFF2A2A3E) : Colors.white;
-    final textColor = isDark ? Colors.white : _kBorderBlack;
-    
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: muted ? const Color(0xFFCCCCCC) : _kBorderBlack,
-          width: 2,
-        ),
-        boxShadow: muted ? [] : _kNeoShadow,
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Colored left accent bar
-            Container(
-              width: 4,
-              decoration: BoxDecoration(
-                color: accentColor,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(10),
-                  bottomLeft: Radius.circular(10),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 12,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: muted ? _kMutedGray : textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      time,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: _kMutedGray,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: Icon(
-                Icons.more_vert,
-                size: 18,
-                color: _kMutedGray,
               ),
             ),
           ],

@@ -14,6 +14,7 @@ import 'screens/flashcards/create_deck_screen.dart';
 import 'screens/flashcards/deck_list_screen.dart';
 import 'screens/flashcards/study_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/tasks/add_task_screen.dart';
 import 'screens/timer/timer_screen.dart';
 import 'services/auth_service.dart';
 
@@ -72,6 +73,7 @@ class MainApp extends StatelessWidget {
             '/flashcards': (_) => const DeckListScreen(),
             '/create-deck': (_) => const CreateDeckScreen(),
             '/study': (_) => const StudyScreen(),
+            '/add-task': (_) => const AddTaskScreen(),
             LoginScreenRoutes.home: (_) => const HomeScreen(),
             LoginScreenRoutes.register: (_) => const RegisterScreen(),
           },
