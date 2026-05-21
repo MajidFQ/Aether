@@ -21,6 +21,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _dailyGoal = 60;
   int _todayMinutes = 0;
   bool _isLoading = true;
+  // Extra profile fields
+  String _bio = '';
+  String _education = '';
+  String _hobbies = '';
+  int? _age;
   Map<String, int> _stats = {
     'totalStudyMinutes': 0,
     'tasksCompleted': 0,
@@ -174,6 +179,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .get();
       if (userDoc.exists) {
         _dailyGoal = userDoc.data()?['dailyGoal'] ?? 60;
+        _bio = userDoc.data()?['bio'] ?? '';
+        _education = userDoc.data()?['education'] ?? '';
+        _hobbies = userDoc.data()?['hobbies'] ?? '';
+        _age = userDoc.data()?['age'] as int?;
       }
 
       // Sessions — total + today
@@ -483,12 +492,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               color: textColor,
                             ),
                           ),
+                          if (_age != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '$_age years old',
+                              style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13, color: mutedColor),
+                            ),
+                          ],
                           const SizedBox(height: 4),
                           Text(
                             user?.email ?? '',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               color: mutedColor,
+                            ),
+                          ),
+                          if (_education.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.school,
+                                    size: 15, color: _kPrimary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _education,
+                                  style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13, color: textColor),
+                                ),
+                              ],
+                            ),
+                          ],
+                          if (_hobbies.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.favorite,
+                                    size: 15, color: _kPrimary),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    _hobbies,
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 13, color: textColor),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          if (_bio.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: _kPrimary.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                _bio,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13, color: textColor),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          // Edit Profile button
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final result = await Navigator.pushNamed(
+                                  context, '/edit-profile');
+                              if (result == true) _loadAll();
+                            },
+                            icon: const Icon(Icons.edit, color: _kPrimary, size: 16),
+                            label: Text(
+                              'Edit Profile',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: _kPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                  color: _kBorderBlack, width: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                           ),
                         ],

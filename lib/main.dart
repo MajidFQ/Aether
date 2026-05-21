@@ -14,6 +14,7 @@ import 'screens/flashcards/create_deck_screen.dart';
 import 'screens/flashcards/deck_list_screen.dart';
 import 'screens/flashcards/study_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/profile/edit_profile_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/tasks/add_task_screen.dart';
 import 'screens/timer/timer_screen.dart';
@@ -76,6 +77,7 @@ class MainApp extends StatelessWidget {
             '/study': (_) => const StudyScreen(),
             '/add-task': (_) => const AddTaskScreen(),
             '/profile': (_) => const ProfileScreen(),
+            '/edit-profile': (_) => const EditProfileScreen(),
             LoginScreenRoutes.home: (_) => const HomeScreen(),
             LoginScreenRoutes.register: (_) => const RegisterScreen(),
           },
