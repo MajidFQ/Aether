@@ -40,6 +40,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _isLoading = false;
 
+  // Inline error state — shown under each field
+  String? _nameError;
+  String? _emailError;
+  String? _passwordError;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -48,28 +53,137 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  // ── Validators ─────────────────────────────────────────────────────────────
+
+  String? _validateName(String value) {
+    final t = value.trim();
+    if (t.isEmpty) return 'Please enter your name.';
+    if (t.length < 2) return 'Name must be at least 2 characters.';
+    return null;
+  }
+
+  String? _validateEmail(String value) {
+    final t = value.trim();
+    if (t.isEmpty) return 'Please enter your email.';
+
+    // Must have exactly one @
+    final parts = t.split('@');
+    if (parts.length != 2) return 'Email must contain exactly one @ symbol.';
+
+    final local = parts[0];
+    final domain = parts[1];
+
+    // ── Local part checks ──────────────────────────────────────────
+    if (local.isEmpty) return 'Enter something before the @ symbol.';
+    if (local.length > 64) return 'Email is too long before the @ symbol.';
+    if (local.startsWith('.') || local.endsWith('.')) {
+      return 'Email cannot start or end with a dot before @.';
+    }
+    if (local.contains('..')) return 'Email cannot have consecutive dots.';
+    if (!RegExp(r'^[a-zA-Z0-9._%+\-]+$').hasMatch(local)) {
+      return 'Email contains invalid characters before @.';
+    }
+
+    // ── Domain part checks ─────────────────────────────────────────
+    if (domain.isEmpty) return 'Enter a domain after the @ symbol.';
+    if (domain.startsWith('.') || domain.endsWith('.')) {
+      return 'Domain cannot start or end with a dot.';
+    }
+    if (domain.contains('..')) return 'Domain cannot have consecutive dots.';
+
+    // Domain must be: label.label (exactly one dot separating domain + TLD)
+    // e.g. gmail.com ✅  gmail.com.com ❌  sub.gmail.com ✅ but we block 2+ TLD dots
+    final domainParts = domain.split('.');
+    if (domainParts.length < 2) return 'Domain must include a dot (e.g. gmail.com).';
+    if (domainParts.length > 2) {
+      // Allow one subdomain max: mail.domain.com → 3 parts OK
+      // Block obvious duplicates like domain.com.com → last two parts same
+      final tld = domainParts.last;
+      final secondLast = domainParts[domainParts.length - 2];
+      if (tld == secondLast) {
+        return 'Domain looks invalid (e.g. .com.com is not allowed).';
+      }
+    }
+
+    // Each domain label must be valid (letters, digits, hyphens; no leading/trailing hyphen)
+    for (final label in domainParts) {
+      if (label.isEmpty) return 'Domain contains an empty section.';
+      if (label.startsWith('-') || label.endsWith('-')) {
+        return 'Domain labels cannot start or end with a hyphen.';
+      }
+      if (!RegExp(r'^[a-zA-Z0-9\-]+$').hasMatch(label)) {
+        return 'Domain contains invalid characters.';
+      }
+    }
+
+    // TLD must be 2–6 letters only (no digits)
+    final tld = domainParts.last;
+    if (!RegExp(r'^[a-zA-Z]{2,6}$').hasMatch(tld)) {
+      return 'Invalid domain ending (e.g. .com, .org, .edu).';
+    }
+
+    return null;
+  }
+
+  String? _validatePassword(String value) {
+    if (value.isEmpty) return 'Please enter a password.';
+    if (value.length < 6) return 'Password must be at least 6 characters.';
+    if (!RegExp(r'[A-Za-z]').hasMatch(value)) return 'Password must contain at least one letter.';
+    if (!RegExp(r'[0-9]').hasMatch(value)) return 'Password must contain at least one number.';
+    return null;
+  }
+
   Future<void> _signUp(AuthService auth) async {
     FocusScope.of(context).unfocus();
 
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
+    final name = _nameController.text;
+    final email = _emailController.text;
     final password = _passwordController.text;
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields.')),
-      );
-      return;
-    }
+    // Run all validators and show inline errors
+    setState(() {
+      _nameError = _validateName(name);
+      _emailError = _validateEmail(email);
+      _passwordError = _validatePassword(password);
+    });
+
+    // Stop if any field is invalid
+    if (_nameError != null || _emailError != null || _passwordError != null) return;
 
     setState(() => _isLoading = true);
     try {
-      await auth.registerWithEmail(email: email, password: password);
-      await FirebaseAuth.instance.currentUser?.updateDisplayName(name);
+      await auth.registerWithEmail(
+          email: email.trim(), password: password);
+      await FirebaseAuth.instance.currentUser
+          ?.updateDisplayName(name.trim());
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/home');
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String message;
+      switch (e.code) {
+        case 'email-already-in-use':
+          message = 'An account with this email already exists.';
+          setState(() => _emailError = message);
+          break;
+        case 'invalid-email':
+          message = 'That email address is not valid.';
+          setState(() => _emailError = message);
+          break;
+        case 'weak-password':
+          message = 'Password is too weak. Use at least 6 characters.';
+          setState(() => _passwordError = message);
+          break;
+        default:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.message ?? 'Registration failed.'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+      }
     } catch (e) {
-      print('Registration Error: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -219,6 +333,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             hintText: 'Your full name',
                             keyboardType: TextInputType.name,
                             textInputAction: TextInputAction.next,
+                            errorText: _nameError,
+                            onChanged: (_) {
+                              if (_nameError != null) setState(() => _nameError = null);
+                            },
                           ),
                           const SizedBox(height: 20),
 
@@ -229,6 +347,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             hintText: 'hello@aether.app',
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
+                            errorText: _emailError,
+                            onChanged: (_) {
+                              if (_emailError != null) setState(() => _emailError = null);
+                            },
                           ),
                           const SizedBox(height: 20),
 
@@ -241,6 +363,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             autocorrect: false,
                             keyboardType: TextInputType.visiblePassword,
                             textInputAction: TextInputAction.done,
+                            errorText: _passwordError,
+                            onChanged: (_) {
+                              if (_passwordError != null) setState(() => _passwordError = null);
+                            },
                           ),
                           const SizedBox(height: 24),
 
