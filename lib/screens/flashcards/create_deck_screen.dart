@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../../services/groq_service.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const Color _kPrimary = Color(0xFF5B4FFF);
@@ -23,21 +27,28 @@ class CreateDeckScreen extends StatefulWidget {
 class _CreateDeckScreenState extends State<CreateDeckScreen> {
   final TextEditingController _deckNameController = TextEditingController();
 
-  // Each card is a pair of controllers so we can read/dispose them cleanly.
+  // Manual creation state
   final List<({TextEditingController question, TextEditingController answer})>
       _cards = [];
+
+  // AI generation state
+  final TextEditingController _topicController = TextEditingController();
+  int _numCardsToGenerate = 10;
+  bool _isGenerating = false;
+  List<Map<String, String>> _generatedCards = [];
 
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _addCard(); // start with one blank card
+    _addCard(); // start with one blank card for manual tab
   }
 
   @override
   void dispose() {
     _deckNameController.dispose();
+    _topicController.dispose();
     for (final c in _cards) {
       c.question.dispose();
       c.answer.dispose();
@@ -73,6 +84,133 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> {
     card.question.dispose();
     card.answer.dispose();
     setState(() => _cards.removeAt(index));
+  }
+
+  // ── AI Generation ──────────────────────────────────────────────────────────
+
+  Future<void> _generateFlashcardsWithAI() async {
+    if (_topicController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a topic'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isGenerating = true;
+      _generatedCards = [];
+    });
+
+    try {
+      final groqService = GroqService();
+      final prompt = '''Generate exactly $_numCardsToGenerate flashcards about: ${_topicController.text.trim()}
+
+Format your response EXACTLY as a JSON array like this:
+[
+  {"question": "What is X?", "answer": "X is..."},
+  {"question": "How does Y work?", "answer": "Y works by..."}
+]
+
+Requirements:
+- Each question should be clear and concise
+- Answers should be 1-2 sentences
+- Cover key concepts
+- Make questions test understanding, not just memorization
+- Return ONLY valid JSON, no other text''';
+
+      final response = await groqService.getChatResponse(prompt);
+
+      // Extract JSON from response (in case AI adds extra text)
+      String jsonString = response.trim();
+
+      // Remove markdown code blocks if present
+      if (jsonString.contains('```json')) {
+        jsonString = jsonString.split('```json')[1].split('```')[0].trim();
+      } else if (jsonString.contains('```')) {
+        jsonString = jsonString.split('```')[1].split('```')[0].trim();
+      }
+
+      // Parse JSON
+      final List<dynamic> cardsJson = jsonDecode(jsonString);
+
+      setState(() {
+        _generatedCards = cardsJson
+            .map((card) => {
+                  'question': card['question'].toString(),
+                  'answer': card['answer'].toString(),
+                })
+            .toList();
+        _isGenerating = false;
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✨ Generated ${_generatedCards.length} flashcards!'),
+        ),
+      );
+    } catch (e) {
+      setState(() => _isGenerating = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Error generating cards. Try again or use manual mode.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      debugPrint('Error generating flashcards: $e');
+    }
+  }
+
+  Future<void> _saveGeneratedDeck() async {
+    if (_deckNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a deck name'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_generatedCards.isEmpty) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) throw Exception('Not logged in');
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('decks')
+          .add({
+        'name': _deckNameController.text.trim(),
+        'cards': _generatedCards,
+        'createdAt': FieldValue.serverTimestamp(),
+        'generatedByAI': true, // Mark as AI-generated
+      });
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Deck saved successfully!')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   // ── Save to Firestore ──────────────────────────────────────────────────────
@@ -142,61 +280,24 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(
-          Theme.of(context).textTheme,
+    return DefaultTabController(
+      length: 2,
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          textTheme: GoogleFonts.plusJakartaSansTextTheme(
+            Theme.of(context).textTheme,
+          ),
+          scaffoldBackgroundColor: _kPageBg,
         ),
-        scaffoldBackgroundColor: _kPageBg,
-      ),
-      child: Scaffold(
-        backgroundColor: _kPageBg,
-        appBar: _buildAppBar(),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // ── Deck name ────────────────────────────────────────────
-            _SectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _label('Deck Name'),
-                  const SizedBox(height: 8),
-                  _NeoTextField(
-                    controller: _deckNameController,
-                    hintText: 'e.g. Quantum Physics',
-                    textInputAction: TextInputAction.next,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // ── Cards heading ────────────────────────────────────────
-            Text(
-              'Cards',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: _kBorderBlack,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // ── Card list ────────────────────────────────────────────
-            ...List.generate(_cards.length, (i) => _buildCardItem(i)),
-
-            const SizedBox(height: 12),
-
-            // ── Add card button ──────────────────────────────────────
-            _AddCardButton(
-              onTap: _addCard,
-              disabled: _cards.length >= 10,
-            ),
-
-            const SizedBox(height: 32),
-          ],
+        child: Scaffold(
+          backgroundColor: _kPageBg,
+          appBar: _buildAppBar(),
+          body: TabBarView(
+            children: [
+              _buildManualTab(),
+              _buildAIGenerateTab(),
+            ],
+          ),
         ),
       ),
     );
@@ -212,12 +313,26 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> {
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
-        'New Deck',
+        'Create Deck',
         style: GoogleFonts.plusJakartaSans(
           fontSize: 20,
           fontWeight: FontWeight.w800,
           color: _kBorderBlack,
         ),
+      ),
+      bottom: TabBar(
+        labelColor: _kPrimary,
+        unselectedLabelColor: _kMutedGray,
+        indicatorColor: _kPrimary,
+        indicatorWeight: 3,
+        labelStyle: GoogleFonts.plusJakartaSans(
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+        ),
+        tabs: const [
+          Tab(icon: Icon(Icons.edit), text: 'Manual'),
+          Tab(icon: Icon(Icons.auto_awesome), text: 'AI Generate'),
+        ],
       ),
       actions: [
         Padding(
@@ -251,6 +366,269 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> {
                   ),
                 ),
         ),
+      ],
+    );
+  }
+
+  // ── Manual Tab ─────────────────────────────────────────────────────────────
+
+  Widget _buildManualTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // ── Deck name ────────────────────────────────────────────
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _label('Deck Name'),
+              const SizedBox(height: 8),
+              _NeoTextField(
+                controller: _deckNameController,
+                hintText: 'e.g. Quantum Physics',
+                textInputAction: TextInputAction.next,
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // ── Cards heading ────────────────────────────────────────
+        Text(
+          'Cards',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: _kBorderBlack,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── Card list ────────────────────────────────────────────
+        ...List.generate(_cards.length, (i) => _buildCardItem(i)),
+
+        const SizedBox(height: 12),
+
+        // ── Add card button ──────────────────────────────────────
+        _AddCardButton(
+          onTap: _addCard,
+          disabled: _cards.length >= 10,
+        ),
+
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+
+  // ── AI Generate Tab ────────────────────────────────────────────────────────
+
+  Widget _buildAIGenerateTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Info card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _kPrimary.withValues(alpha: 0.1),
+            border: Border.all(color: _kPrimary, width: 2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: _kPrimary, size: 32),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'AI will generate flashcards from your topic. Perfect for quick study prep! ✨',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Deck name
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _label('Deck Name'),
+              const SizedBox(height: 8),
+              _NeoTextField(
+                controller: _deckNameController,
+                hintText: 'e.g., Biology Chapter 3',
+                textInputAction: TextInputAction.next,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Topic input
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _label('Topic / Subject'),
+              const SizedBox(height: 8),
+              _NeoTextField(
+                controller: _topicController,
+                hintText:
+                    'e.g., Photosynthesis process and light reactions',
+                textInputAction: TextInputAction.done,
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Number of cards slider
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _label('Number of Cards: $_numCardsToGenerate'),
+              const SizedBox(height: 8),
+              Slider(
+                value: _numCardsToGenerate.toDouble(),
+                min: 5,
+                max: 15,
+                divisions: 10,
+                activeColor: _kPrimary,
+                label: '$_numCardsToGenerate cards',
+                onChanged: (value) {
+                  setState(() => _numCardsToGenerate = value.round());
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Generate button
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton.icon(
+            onPressed: _isGenerating ? null : _generateFlashcardsWithAI,
+            icon: _isGenerating
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Icon(Icons.auto_awesome, color: Colors.white),
+            label: Text(
+              _isGenerating ? 'Generating...' : 'Generate Flashcards',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kPrimary,
+              disabledBackgroundColor: _kMutedGray,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: _kBorderBlack, width: 2),
+              ),
+              elevation: 0,
+            ),
+          ),
+        ),
+
+        // Preview generated cards
+        if (_generatedCards.isNotEmpty) ...[
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Generated Cards (${_generatedCards.length})',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton(
+                onPressed: _saveGeneratedDeck,
+                child: Text(
+                  'Save Deck',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: _kPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ..._generatedCards.asMap().entries.map((entry) {
+            final index = entry.key;
+            final card = entry.value;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: _kBorderBlack, width: 2),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: _kNeoShadow,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _kPrimary,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'Q${index + 1}',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          card['question']!,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    card['answer']!,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: _kMutedGray,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
       ],
     );
   }
