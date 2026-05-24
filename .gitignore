@@ -52,3 +52,8 @@ assets/.env
 # Firebase sensitive configuration
 lib/firebase_options.dart
 firebase_options.dart
+
+# Release builds (use GitHub Releases instead)
+/releases/
+*.apk
+*.aab

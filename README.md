@@ -187,15 +187,26 @@ shared_preferences: ^2.3.4
 
 ## 🎮 Demo
 
-### Try it yourself!
+### Download & Try!
 
-**Android APK:** [Download](releases/aether-v1.0.apk) *(Coming soon)*
+**📱 Android APK:** [Download v1.0.0](https://github.com/yourusername/aether/releases/download/v1.0.0/aether-v1.0.0.apk) (56.9 MB)
 
-**Web Demo:** [Live Demo](https://aether-demo.web.app) *(Coming soon)*
+**🌐 Web Demo:** Coming soon!
+
+### Installation Instructions
+
+1. Download the APK file from the link above
+2. On your Android device, go to Settings → Security
+3. Enable "Install from Unknown Sources" or "Install Unknown Apps"
+4. Open the downloaded APK file
+5. Tap "Install" and wait for installation to complete
+6. Launch Aether and create your account!
+
+**Minimum Requirements:** Android 5.0 (API 21) or higher
 
 ### Video Walkthrough
 
-[![Aether Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+Coming soon!
 
 ---
 
