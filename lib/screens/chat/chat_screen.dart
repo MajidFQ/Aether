@@ -114,7 +114,13 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     try {
-      final reply = await _groq.getChatResponse(text);
+      // Build conversation history for context
+      final conversationHistory = _messages.map((m) => {
+        'role': m.isUser ? 'user' : 'assistant',
+        'content': m.text,
+      }).toList();
+
+      final reply = await _groq.getChatResponseWithHistory(conversationHistory);
       if (!mounted) return;
       setState(() {
         _messages.add(
@@ -348,8 +354,17 @@ class _ChatScreenState extends State<ChatScreen> {
       padding: const EdgeInsets.only(left: 16, bottom: 4),
       child: Row(
         children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: _kPrimary,
+            ),
+          ),
+          const SizedBox(width: 12),
           Text(
-            'Aether AI is typing...',
+            'Aether is thinking... 🤔',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               color: _kMutedGray,
@@ -371,70 +386,111 @@ class _ChatScreenState extends State<ChatScreen> {
         color: cardColor,
         border: const Border(top: BorderSide(color: _kBorderBlack, width: 2)),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _kBorderBlack, width: 2),
-              ),
-              child: Row(
+          // Suggestion chips — show only at start of conversation
+          if (_messages.length <= 2)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _inputController,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _sendMessage(),
-                      style: GoogleFonts.plusJakartaSans(fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: 'Ask Aether anything...',
-                        hintStyle: GoogleFonts.plusJakartaSans(
-                          color: mutedColor,
-                          fontSize: 14,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.attach_file,
-                        size: 20, color: mutedColor),
-                    onPressed: () {},
-                    tooltip: 'Attach',
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.mic_none,
-                        size: 20, color: mutedColor),
-                    onPressed: () {},
-                    tooltip: 'Voice',
-                  ),
+                  _buildSuggestionChip('📐 Explain a math concept'),
+                  _buildSuggestionChip('🧪 Help with chemistry'),
+                  _buildSuggestionChip('📚 Study tips'),
+                  _buildSuggestionChip('💡 Break down a topic'),
                 ],
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: _sendMessage,
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: _kPrimary,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _kBorderBlack, width: 2),
-                boxShadow: _kNeoShadow,
+          // Input field
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _kBorderBlack, width: 2),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _inputController,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _sendMessage(),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Ask Aether anything...',
+                            hintStyle: GoogleFonts.plusJakartaSans(
+                              color: mutedColor,
+                              fontSize: 14,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.attach_file,
+                            size: 20, color: mutedColor),
+                        onPressed: () {},
+                        tooltip: 'Attach',
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.mic_none,
+                            size: 20, color: mutedColor),
+                        onPressed: () {},
+                        tooltip: 'Voice',
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              child: const Icon(Icons.send, color: Colors.white, size: 20),
-            ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _sendMessage,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _kPrimary,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _kBorderBlack, width: 2),
+                    boxShadow: _kNeoShadow,
+                  ),
+                  child: const Icon(Icons.send, color: Colors.white, size: 20),
+                ),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSuggestionChip(String text) {
+    return ActionChip(
+      label: Text(
+        text,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      backgroundColor: _kPrimary.withValues(alpha: 0.1),
+      side: const BorderSide(color: _kPrimary, width: 1.5),
+      onPressed: () {
+        // Remove emoji prefix and set as input
+        final cleanText = text.substring(text.indexOf(' ') + 1);
+        _inputController.text = cleanText;
+        _sendMessage();
+      },
     );
   }
 }
