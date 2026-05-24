@@ -1,4 +1,4 @@
-package com.example.aether
+package com.majid.aether
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/groq_service.dart';
+import '../../utils/theme_helper.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const Color _kPrimary = Color(0xFF5B4FFF);
-const Color _kPageBg = Color(0xFFF5F5F7);
 const Color _kBorderBlack = Color(0xFF000000);
 const Color _kMutedGray = Color(0xFF6B6B70);
 
@@ -280,36 +280,33 @@ Requirements:
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = getBackgroundColor(context);
+    
     return DefaultTabController(
       length: 2,
-      child: Theme(
-        data: Theme.of(context).copyWith(
-          textTheme: GoogleFonts.plusJakartaSansTextTheme(
-            Theme.of(context).textTheme,
-          ),
-          scaffoldBackgroundColor: _kPageBg,
-        ),
-        child: Scaffold(
-          backgroundColor: _kPageBg,
-          appBar: _buildAppBar(),
-          body: TabBarView(
-            children: [
-              _buildManualTab(),
-              _buildAIGenerateTab(),
-            ],
-          ),
+      child: Scaffold(
+        backgroundColor: bgColor,
+        appBar: _buildAppBar(),
+        body: TabBarView(
+          children: [
+            _buildManualTab(),
+            _buildAIGenerateTab(),
+          ],
         ),
       ),
     );
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final bgColor = getBackgroundColor(context);
+    final textColor = getTextColor(context);
+    
     return AppBar(
-      backgroundColor: _kPageBg,
+      backgroundColor: bgColor,
       elevation: 0,
       scrolledUnderElevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: _kBorderBlack),
+        icon: Icon(Icons.arrow_back, color: textColor),
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
@@ -317,7 +314,7 @@ Requirements:
         style: GoogleFonts.plusJakartaSans(
           fontSize: 20,
           fontWeight: FontWeight.w800,
-          color: _kBorderBlack,
+          color: textColor,
         ),
       ),
       bottom: TabBar(
@@ -373,6 +370,8 @@ Requirements:
   // ── Manual Tab ─────────────────────────────────────────────────────────────
 
   Widget _buildManualTab() {
+    final textColor = getTextColor(context);
+    
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -400,7 +399,7 @@ Requirements:
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: _kBorderBlack,
+            color: textColor,
           ),
         ),
         const SizedBox(height: 12),
@@ -424,6 +423,8 @@ Requirements:
   // ── AI Generate Tab ────────────────────────────────────────────────────────
 
   Widget _buildAIGenerateTab() {
+    final textColor = getTextColor(context);
+    
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -442,7 +443,7 @@ Requirements:
               Expanded(
                 child: Text(
                   'AI will generate flashcards from your topic. Perfect for quick study prep! ✨',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 14),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textColor),
                 ),
               ),
             ],
@@ -556,6 +557,7 @@ Requirements:
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: textColor,
                 ),
               ),
               TextButton(
@@ -578,7 +580,7 @@ Requirements:
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: getCardColor(context),
                 border: Border.all(color: _kBorderBlack, width: 2),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: _kNeoShadow,
@@ -611,6 +613,7 @@ Requirements:
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
+                            color: textColor,
                           ),
                         ),
                       ),
@@ -620,7 +623,7 @@ Requirements:
                   Text(
                     card['answer']!,
                     style: GoogleFonts.plusJakartaSans(
-                      color: _kMutedGray,
+                      color: getMutedTextColor(context),
                       fontSize: 14,
                     ),
                   ),
@@ -702,7 +705,7 @@ Requirements:
       style: GoogleFonts.plusJakartaSans(
         fontSize: 13,
         fontWeight: FontWeight.w700,
-        color: _kBorderBlack,
+        color: getTextColor(context),
       ),
     );
   }
@@ -719,7 +722,7 @@ class _SectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: getCardColor(context),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _kBorderBlack, width: 2),
         boxShadow: _kNeoShadow,
@@ -744,11 +747,14 @@ class _NeoTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = getBackgroundColor(context);
+    final textColor = getTextColor(context);
+    
     return TextField(
       controller: controller,
       textInputAction: textInputAction,
       maxLines: maxLines,
-      style: GoogleFonts.plusJakartaSans(fontSize: 14),
+      style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textColor),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: GoogleFonts.plusJakartaSans(
@@ -756,7 +762,7 @@ class _NeoTextField extends StatelessWidget {
           fontSize: 14,
         ),
         filled: true,
-        fillColor: _kPageBg,
+        fillColor: bgColor,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
@@ -790,7 +796,7 @@ class _AddCardButton extends StatelessWidget {
         child: Container(
           height: 52,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: getCardColor(context),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: _kPrimary, width: 2),
             boxShadow: _kNeoShadow,
