@@ -48,3 +48,7 @@ app.*.map.json
 *.env
 .env
 assets/.env
+
+# Firebase sensitive configuration
+lib/firebase_options.dart
+firebase_options.dart
