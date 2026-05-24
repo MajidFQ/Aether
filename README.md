@@ -82,21 +82,19 @@ Aether is a **next-generation study assistant** that combines the power of AI wi
 ### Home & Chat
 | Home Screen | AI Chat | Chat History |
 |-------------|---------|--------------|
-| ![Home](docs/screenshots/home.png) | ![Chat](docs/screenshots/chat.png) | ![History](docs/screenshots/history.png) |
+| ![Home](docs/screenshots/Home.png) | ![Chat](docs/screenshots/Chat.png) | ![History](docs/screenshots/History.png) |
 
-### Flashcards
-| Deck List | AI Generate | Study Mode |
-|-----------|-------------|------------|
-| ![Decks](docs/screenshots/decks.png) | ![Generate](docs/screenshots/generate.png) | ![Study](docs/screenshots/study.png) |
+### Flashcards & Productivity
+| Deck List | AI Generate | Tasks |
+|-----------|-------------|-------|
+| ![Decks](docs/screenshots/Decks.png) | ![Generate](docs/screenshots/Generate.png) | ![Tasks](docs/screenshots/Tasks.png) |
 
-### Productivity
-| Tasks | Timer | Profile |
-|-------|-------|---------|
-| ![Tasks](docs/screenshots/tasks.png) | ![Timer](docs/screenshots/timer.png) | ![Profile](docs/screenshots/profile.png) |
+### Timer & Profile
+| Focus Timer | Profile |
+|-------------|---------|
+| ![Timer](docs/screenshots/Timer.png) | ![Profile](docs/screenshots/Profile.png) |
 
 </div>
-
-> 📸 *Screenshots coming soon! Add your own in `docs/screenshots/`*
 
 ---
 
