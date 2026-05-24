@@ -54,7 +54,7 @@ Aether is your AI-powered study companion, combining productivity tools with int
 
 ## 📦 Download
 
-**Android APK:** [aether-v1.0.0.apk](https://github.com/yourusername/aether/releases/download/v1.0.0/aether-v1.0.0.apk)
+**Android APK:** [aether-v1.0.0.apk](https://github.com/MajidFQ/Aether/releases/download/v1.0.0/aether-v1.0.0.apk)
 
 **Size:** 56.9 MB
 
@@ -107,7 +107,7 @@ Planned features for v1.1.0:
 
 Found a bug or have a feature request?
 
-- **Open an issue:** [GitHub Issues](https://github.com/yourusername/aether/issues)
+- **Open an issue:** [GitHub Issues](https://github.com/MajidFQ/Aether/issues)
 - **Email:** your.email@example.com
 
 ---

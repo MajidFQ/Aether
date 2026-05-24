@@ -144,7 +144,7 @@ shared_preferences: ^2.3.4
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/aether.git
+   git clone https://github.com/MajidFQ/Aether.git
    cd aether
    ```
 
@@ -189,7 +189,7 @@ shared_preferences: ^2.3.4
 
 ### Download & Try!
 
-**📱 Android APK:** [Download v1.0.0](https://github.com/yourusername/aether/releases/download/v1.0.0/aether-v1.0.0.apk) (56.9 MB)
+**📱 Android APK:** [Download v1.0.0](https://github.com/MajidFQ/Aether/releases/download/v1.0.0/aether-v1.0.0.apk) (56.9 MB)
 
 **🌐 Web Demo:** Coming soon!
 
@@ -328,11 +328,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Team
 
-**Developed by:** [Your Name](https://github.com/yourusername)
+**Developed by:** [Majid Farooq Qureshi](https://github.com/MajidFQ)
 
 **Course:** Mobile Application Development
 
-**Institution:** [Your University]
+**Institution:** [COMSATS Islamabad]
 
 **Year:** 2026
 
@@ -352,15 +352,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Have questions? Reach out!
 
-- **Email:** your.email@example.com
-- **GitHub:** [@yourusername](https://github.com/yourusername)
-- **LinkedIn:** [Your Name](https://linkedin.com/in/yourprofile)
+- **Email:** majidofficial045@gmail.com
+- **GitHub:** [@MajidFQ](https://github.com/MajidFQ)
 
 ---
 
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/aether&type=Date)](https://star-history.com/#yourusername/aether&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=MajidFQ/Aether&type=Date)](https://star-history.com/#MajidFQ/Aether&Date)
 
 ---
 
